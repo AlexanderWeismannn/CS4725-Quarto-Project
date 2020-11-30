@@ -1,7 +1,7 @@
-public class QuartoSemiRandomAgent extends QuartoAgent {
+public class QuartoHopefullySomewhatSmartAgent extends QuartoAgent {
 
     //Example AI
-    public QuartoSemiRandomAgent(GameClient gameClient, String stateFileName) {
+    public QuartoHopefullySomewhatSmartAgent(GameClient gameClient, String stateFileName) {
         // because super calls one of the super class constructors(you can overload constructors), you need to pass the parameters required.
         super(gameClient, stateFileName);
     }
@@ -25,7 +25,7 @@ public class QuartoSemiRandomAgent extends QuartoAgent {
         }
 
         gameClient.connectToServer(ip, 4321);
-        QuartoSemiRandomAgent quartoAgent = new QuartoSemiRandomAgent(gameClient, stateFileName);
+        QuartoHopefullySomewhatSmartAgent quartoAgent = new QuartoHopefullySomewhatSmartAgent(gameClient, stateFileName);
         quartoAgent.play();
 
         gameClient.closeConnection();
@@ -38,6 +38,7 @@ public class QuartoSemiRandomAgent extends QuartoAgent {
 	 */
     @Override
     protected String pieceSelectionAlgorithm() {
+
         //some useful lines:
         //String BinaryString = String.format("%5s", Integer.toBinaryString(pieceID)).replace(' ', '0');
 
@@ -96,20 +97,46 @@ public class QuartoSemiRandomAgent extends QuartoAgent {
     @Override
     protected String moveSelectionAlgorithm(int pieceID) {
 
-        //If there is a winning move, take it
-
-        // [This is where you should insert the required code for Assignment 1.]
 
 
+        /**
+         * Checks for an immediate win condition, if it is true it returns that
+         **/
+        for(int row = 0; row < quartoBoard.getNumberOfRows(); row++){
+            for(int col = 0; col < this.quartoBoard.getNumberOfColumns(); col++){
+                //checks to see if space is taken
+                if(this.quartoBoard.getPieceOnPosition(row,col) == null){
+                    //if not make a duplicate board and fill in the empty space
+                    QuartoBoard copyBoard = new QuartoBoard(this.quartoBoard);
+                    copyBoard.insertPieceOnBoard(row,col,pieceID);
+
+                    //if the filled in space would lead to a won game, return the position
+                    if(copyBoard.checkColumn(col) || copyBoard.checkRow(row) || copyBoard.checkDiagonals()){
+                        return row + "," + col;
+                    }
+
+                    // If it doesn't win, continue exploring turns ahead
+                    // if an attribute exists on 4 pieces in the row we do not want to give any further pieces with a similar attribute
+                }
+            }
+        }
+
+        /**
+         * Else we begin the exploration of a game tree to get an answer
+         * keep a running "best" that can be used in case we run out of time
+         **/
+
+        /**
+         * Finally
+         **/
 
         // If no winning move is found in the above code, then return a random (unoccupied) square
+        //creates a move array of size 2
         int[] move = new int[2];
         QuartoBoard copyBoard = new QuartoBoard(this.quartoBoard);
         move = copyBoard.chooseRandomPositionNotPlayed(100);
-
         return move[0] + "," + move[1];
     }
-
 
 
     //loop through board and see if the game is in a won state
@@ -142,5 +169,4 @@ public class QuartoSemiRandomAgent extends QuartoAgent {
 
         return false;
     }
-
 }
