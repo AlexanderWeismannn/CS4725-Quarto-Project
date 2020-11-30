@@ -97,7 +97,26 @@ public class QuartoHopefullySomewhatSmartAgent extends QuartoAgent {
     @Override
     protected String moveSelectionAlgorithm(int pieceID) {
 
+        /**
+         *  This will hold [pieceID, row, col] in order of moves to win.
+         *  If this is empty, it means we weren't able to find a winning sequence, so we'll have to
+         *  Determine what to place in this scenario.
+         *
+         *  Example:
+         *  System.out.println(bestSequenceOfMoves);
+         *  > [[tall_square_no_hole_brown][row_2][column_3], [short_circle_hole_white][row_3][column_4] ... ]
+         *
+         *  Note: we'll have to make sure the sequence ends on our turn (so we don't help the opponent win...
+         *
+         *
+         *  1. When it's our turn, and we are given a piece:
+         *      For every empty tile, try our piece, check if we win
+         *      If we don't win:
+         *          For every empty tile, place our piece, then simulate the same process from the new board, with every available piece
+         *          repeat
+         */
 
+        int bestSequenceOfMoves[][];
 
         /**
          * Checks for an immediate win condition, if it is true it returns that
@@ -113,18 +132,16 @@ public class QuartoHopefullySomewhatSmartAgent extends QuartoAgent {
                     //if the filled in space would lead to a won game, return the position
                     if(copyBoard.checkColumn(col) || copyBoard.checkRow(row) || copyBoard.checkDiagonals()){
                         return row + "," + col;
+                    } else {
+                        /**
+                         * We didn't win on the first depth, now we need to explore further turns
+                         * Depth is how many turns we'll look ahead. In this case, 3
+                         */
+                        testAllOptions(copyBoard, 3);
                     }
-
-                    // If it doesn't win, continue exploring turns ahead
-                    // if an attribute exists on 4 pieces in the row we do not want to give any further pieces with a similar attribute
                 }
             }
         }
-
-        /**
-         * Else we begin the exploration of a game tree to get an answer
-         * keep a running "best" that can be used in case we run out of time
-         **/
 
         /**
          * Finally
@@ -136,6 +153,58 @@ public class QuartoHopefullySomewhatSmartAgent extends QuartoAgent {
         QuartoBoard copyBoard = new QuartoBoard(this.quartoBoard);
         move = copyBoard.chooseRandomPositionNotPlayed(100);
         return move[0] + "," + move[1];
+    }
+
+    private String testAllOptions(QuartoBoard currentBoard, int depth) {
+
+        //TODO:
+        //1.) Implement some form of player vs other player check (ie is player 1 going or player 2)
+        //2.) implement some method for checking the value fo the move based on a evaluation function
+
+
+        //get bumped up based on the best possible move made
+        // we will have a max value of 4
+        // if 4 is achieved return that board position immediately
+        // 0 - 3 are all other possible values
+        //should implement a method for comparing and giving a return value
+        int max = 0;
+
+        //return the best value here
+        //need to change it from null to something else
+        if (depth <= 0) {
+            return null;
+        }
+
+
+        /**
+         * What this does (I think... )
+         * For every empty cell,
+         *  we try every single piece on that cell,
+         *      and then simulate the next two turns given that placement
+         *
+         * What this ACTUALLY does:
+         *  fuck knows
+         */
+        for(int row = 0; row < currentBoard.getNumberOfRows(); row++) {
+            for (int col = 0; col < currentBoard.getNumberOfColumns(); col++) {
+                //checks to see if space is taken
+                if (currentBoard.getPieceOnPosition(row, col) == null) {
+                    //if not, make a duplicate board and fill in the empty space with every possible piece
+                    for (int i = 0; i < currentBoard.getNumberOfPieces(); i++) {
+                        QuartoBoard copyBoard = new QuartoBoard(currentBoard);
+                        copyBoard.insertPieceOnBoard(row, col, currentBoard.chooseNextPieceNotPlayed());
+
+                        if (copyBoard.checkColumn(col) || copyBoard.checkRow(row) || copyBoard.checkDiagonals()) {
+                            return row + "," + col;
+                        } else {
+                            testAllOptions(copyBoard, depth--);
+                        }
+                    }
+                }
+            }
+        }
+
+        return ("Ya dun fucked up");
     }
 
 
