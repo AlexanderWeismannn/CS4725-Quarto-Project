@@ -1,3 +1,5 @@
+import java.util.ArrayList;
+
 public class QuartoHopefullySomewhatSmartAgent extends QuartoAgent {
 
     //Example AI
@@ -98,27 +100,6 @@ public class QuartoHopefullySomewhatSmartAgent extends QuartoAgent {
     protected String moveSelectionAlgorithm(int pieceID) {
 
         /**
-         *  This will hold [pieceID, row, col] in order of moves to win.
-         *  If this is empty, it means we weren't able to find a winning sequence, so we'll have to
-         *  Determine what to place in this scenario.
-         *
-         *  Example:
-         *  System.out.println(bestSequenceOfMoves);
-         *  > [[tall_square_no_hole_brown][row_2][column_3], [short_circle_hole_white][row_3][column_4] ... ]
-         *
-         *  Note: we'll have to make sure the sequence ends on our turn (so we don't help the opponent win...
-         *
-         *
-         *  1. When it's our turn, and we are given a piece:
-         *      For every empty tile, try our piece, check if we win
-         *      If we don't win:
-         *          For every empty tile, place our piece, then simulate the same process from the new board, with every available piece
-         *          repeat
-         */
-
-        int bestSequenceOfMoves[][];
-
-        /**
          * Checks for an immediate win condition, if it is true it returns that
          **/
         for(int row = 0; row < quartoBoard.getNumberOfRows(); row++){
@@ -132,16 +113,31 @@ public class QuartoHopefullySomewhatSmartAgent extends QuartoAgent {
                     //if the filled in space would lead to a won game, return the position
                     if(copyBoard.checkColumn(col) || copyBoard.checkRow(row) || copyBoard.checkDiagonals()){
                         return row + "," + col;
-                    } else {
-                        /**
-                         * We didn't win on the first depth, now we need to explore further turns
-                         * Depth is how many turns we'll look ahead. In this case, 3
-                         */
-                        testAllOptions(copyBoard, 3);
                     }
                 }
             }
         }
+
+        // We know we can't win with this piece, so...
+        // Where can we place it such that it gives us the most value?
+        // We know how good a placement is based on the number of similarities in that row, column, and diagonal with other pieces.
+        // So, we want to place our piece in a row such that this number is the highest it can be WITHOUT being in a place that
+        // Our opponent can win next turn.
+        // We can be sure that our opponent cannot win from this placement if the NONE of the row, column, or diagonal have 3 pieces
+        // that share a similarity in them already. (That is, we're placing the first, second, third, or WINNING piece).
+        //
+        // Steps:
+        // 1) For all empty spots:
+        // 2) Place our piece in a copy of the board, and then check the row, column, and diagonal:
+        // 3) If either the row, column, or diagonal now have 4 pieces in them (including our piece), reject this placement
+        // 4) Else keep a note of how high our score is (based on how many similarities in the row/column/diagonal)
+        // 5) Return the highest scoring placement
+        // 6) On their turn, if we placed a piece such that a row/column/diagonal now has 3 pieces,
+        //       Give the opponent the 4th piece in that sequence. This would give us the highest chance of winning on our next turn.
+        //the high score value should hold an integer value along with the binary string and row / column
+
+
+
 
         /**
          * Finally
@@ -154,8 +150,120 @@ public class QuartoHopefullySomewhatSmartAgent extends QuartoAgent {
         move = copyBoard.chooseRandomPositionNotPlayed(100);
         return move[0] + "," + move[1];
     }
+    // a highscore object that contains all relevant information for use
+    // in the calculateMoveScore
+    // one instance will be created and the pieceID, row, column will change based
+    // on exploration of options
+
+    public class HighScore{
+        int score;
+        int pieceID;
+        int row;
+        int column;
+
+        public void setScore(int score){
+            this.score = score;
+        }
+
+        public int getScore(){
+            return score;
+        }
+
+        public void setPieceID(){
+            this.pieceID = pieceID;
+        }
+
+        public int getPieceID(){
+            return pieceID;
+        }
+
+        public void setRow(){
+            this.row = row;
+        }
+        public int getRow(){
+            return row;
+        }
+
+        public void setColumn(){
+            this.column = column;
+        }
+
+        public int getColumn(){
+            return column;
+        }
+
+
+    }
+
+
+    /**
+     * The method for determining a certain score that the piece has
+     */
+    private void calculateMoveScore(HighScore bestOption){
+
+        // Steps:
+        // 1) For all empty spots:
+        // 2) Place our piece in a copy of the board, and then check the row, column, and diagonal:
+        // 3) If either the row, column, or diagonal now have 4 pieces in them (including our piece), reject this placement
+        // 4) Else keep a note of how high our score is (based on how many similarities in the row/column/diagonal)
+        // 5) Return the highest scoring placement
+        // 6) On their turn, if we placed a piece such that a row/column/diagonal now has 3 pieces,
+        //       Give the opponent the 4th piece in that sequence. This would give us the highest chance of winning on our next turn.
+        //the high score value should hold an integer value along with the binary string and row / column
+
+        //we are assuming that there are no rows / colums / or diagonals with 4 pieces
+
+
+    }
+
+
 
     private String testAllOptions(QuartoBoard currentBoard, int depth) {
+
+
+
+        //depth 1 has already been explored by the move function
+        //TODO:
+        /**
+         * 1.)Decide on a random move
+         * 2.)See if there is a piece that you can give after that move that will not cause you to lose
+         * 3.)if YES then continue to iterate until depth is reached / the end is reached
+         *  -if depth is not reached in time for all results, store a running best move that has been explored to depth
+         * 4.)if NO then choose another random move
+         * 5.)
+         */
+
+
+    // Get a list of all available pieces
+
+    ArrayList<Integer> pieces_we_can_use = new ArrayList<Integer>();
+
+    for(int i = 0; i < currentBoard.pieces.length; i++) {
+        if(!currentBoard.getPiece(i).isInPlay()) {
+            pieces_we_can_use.add(i);
+        }
+    }
+
+    // Now that we have all our potential pieces,
+    //
+
+
+
+//        //gets the next available piece in the piece array
+//        public int chooseNextPieceNotPlayed() {
+//            for(int i = 0; i < pieces.length; i++) {
+//                if(!this.getPiece(i).isInPlay()) {
+//                    return i;
+//                }
+//            }
+//            //-1 should never be returned
+//            return -1;
+//        }
+
+
+
+
+
 
         //TODO:
         //1.) Implement some form of player vs other player check (ie is player 1 going or player 2)
@@ -168,6 +276,7 @@ public class QuartoHopefullySomewhatSmartAgent extends QuartoAgent {
         // 0 - 3 are all other possible values
         //should implement a method for comparing and giving a return value
         int max = 0;
+
 
         //return the best value here
         //need to change it from null to something else
