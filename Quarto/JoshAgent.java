@@ -78,12 +78,9 @@ public class JoshAgent extends QuartoAgent {
 
         //Loop through each root node and build trees
         for (int i = 0; i < spotCount; i++){
-          rootLayer[i] = MiniMax(true, pieceID, remSpots.get(i)[0], remSpots.get(i)[1], depth, spotCount, remPieces, remSpots, this.quartoBoard);
+          rootLayer[i] = MiniMax(true, pieceID, remSpots.get(i)[0], remSpots.get(i)[1], depth, remPieces, remSpots, this.quartoBoard);
         }
 
-        for (Node n : rootLayer){
-          System.out.println("Row: " + n.row + "\tCol: " + n.col + "\tScore: " + n.score);
-        }
         //Root layer is now a list of nodes, each of which containing a score.
         //Choose the max of these nodes
         Node maxNode = rootLayer[0];
@@ -93,14 +90,7 @@ public class JoshAgent extends QuartoAgent {
           }
         }
 
-        Node minNode = maxNode.children.get(0);
-        for(int k = 1; k < maxNode.children.size(); k++){
-          if(minNode.score < maxNode.children.get(k).score){
-            minNode = maxNode.children.get(k);
-          }
-        }
-
-        pieceToPass = minNode.passedPiece;
+        pieceToPass = maxNode.passedPiece;
 
         //Timer
         long endTime = System.nanoTime();
@@ -175,8 +165,8 @@ public class JoshAgent extends QuartoAgent {
     }
 
 
-    private Node MiniMax(boolean player, int piece, int row, int col, int depth, int spotCount, ArrayList<Integer> piecesLeft, ArrayList<int[]> spotsLeft, QuartoBoard prevBoard){
-      Node node = new Node(piece, row, col);
+    private Node MiniMax(boolean player, int piece, int row, int col, int depth, ArrayList<Integer> piecesLeft, ArrayList<int[]> spotsLeft, QuartoBoard prevBoard){
+      Node node = new Node(piece, row, col, player);
       QuartoBoard newBoard = new QuartoBoard(prevBoard);
       newBoard.insertPieceOnBoard(row, col, piece);
       //Make shallow copries and update our arraylists
@@ -195,7 +185,7 @@ public class JoshAgent extends QuartoAgent {
         return node;
       }
       //If board is full or we reach max depth
-      if(depth == 0 || spotCount == 0){
+      if(depth == 0 || mySpotsLeft.size() == 0){
         node.isLeafNode = true;
         node.score = EvaluateBoardState(newBoard, row, col, player);
         return node;
@@ -203,15 +193,24 @@ public class JoshAgent extends QuartoAgent {
 
       //We're not a leaf node, so we add children to our node
       for(int i = 0; i < myPiecesLeft.size(); i++){
-        for(int j = 0; j < spotCount-1; j++){
-          Node child = MiniMax(!player, myPiecesLeft.get(i), mySpotsLeft.get(j)[0], mySpotsLeft.get(j)[1], depth-1, spotCount-1, myPiecesLeft, mySpotsLeft, newBoard);
+        int pieceScore = (player ? MAX_SCORE : MIN_SCORE);
+        for(int j = 0; j < mySpotsLeft.size(); j++){
+          //We choose min spot per piece if player
+          Node child = MiniMax(!player, myPiecesLeft.get(i), mySpotsLeft.get(j)[0], mySpotsLeft.get(j)[1], depth-1, myPiecesLeft, mySpotsLeft, newBoard);
           node.addChildNode(child);
-          if((node.score < child.score) && !player)
-            node.score = child.score;
-          else if((node.score > child.score) && player)
-            node.score = child.score;
+
+          if(pieceScore > child.score && player)
+              pieceScore = child.score;
+          else if (pieceScore < child.score && !player)
+            pieceScore = child.score;
+        }
+
+        if((node.score < pieceScore && player) || (node.score > pieceScore && !player)){
+          node.score = pieceScore;
+          node.passedPiece = myPiecesLeft.get(i);
         }
       }
+
       return node;
     }
 
@@ -220,12 +219,18 @@ public class JoshAgent extends QuartoAgent {
       //Node should store if its me or the opponent (max or min), if it should have children (leaf),
       //What board state it represents (row, col, piece), and finally a score/value/worth.
       boolean isLeafNode = false;
+      boolean isPlayer;
       int score = 0;
       int passedPiece;
       int row, col;
       ArrayList<Node> children;
 
-      public Node(int piece, int row, int col){
+      public Node(int piece, int row, int col, boolean player){
+        this.isPlayer = player;
+        if(player)
+          this.score = MIN_SCORE;
+        else
+          this.score = MAX_SCORE;
         this.passedPiece = piece;
         this.row = row;
         this.col = col;
