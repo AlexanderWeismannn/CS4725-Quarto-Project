@@ -57,13 +57,11 @@ public class JoshAgent extends QuartoAgent {
     @Override
     protected String moveSelectionAlgorithm(int pieceID) {
 
-        // if(turn > 20)
-        //   depth = 4;
-        // else if(turn > 15)
-        //   depth = 3;
-        // else if(turn > 6)
-        //   depth = 2;
-        //System.out.println(depth);
+         if(turn > 11)
+           depth = 3;
+         else if(turn > 6)
+           depth = 2;
+
         long startTime = System.nanoTime();
 
         int spotCount = getRemainingSpotCount(this.quartoBoard);
@@ -94,7 +92,7 @@ public class JoshAgent extends QuartoAgent {
 
         //Timer
         long endTime = System.nanoTime();
-        System.out.println((endTime-startTime)/1000000);
+        System.out.println("\n" + (endTime-startTime)/1000000);
 
         turn++;
         //Return final choice
