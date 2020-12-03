@@ -1,0 +1,97 @@
+ //Return a value representing whether a board is good or bad
+    private int EvaluateBoardState(QuartoBoard qb, int row, int col, boolean player){
+        //probably can be an integer attribute
+        int evaluationNum = 0;
+        //QuartoPiece chosenPiece = qb.getPieceOnPosition(row,col);
+        ArrayList<QuartoPiece[]> pieceGroups = groupOfPieces(qb);
+
+        /**
+         * The more pieces that share commonalities in the board the better
+         * +1 for every common attribute
+         *
+         */
+        for(QuartoPiece[] pieceGroup : pieceGroups){
+
+            for(int i = 0; i < this.quartoBoard.getNumberOfRows() ;i++){
+                for(int j = i+1; j < this.quartoBoard.getNumberOfColumns() ;j++){
+                    
+                    //compare 0 and 1
+                    if(pieceGroup[i] != null && pieceGroup[j] != null){
+                        evaluationNum += commonAttributeFinder(pieceGroup[i],pieceGroup[j]);
+                    }
+                    
+                }
+            }
+            
+        }
+
+        if(player)
+            return evaluationNum;
+        else
+            return -evaluationNum;    
+    }
+
+    /**
+     * Takes in two pieces
+     * compares them
+     * return the # of common attributes
+     * */
+    private int commonAttributeFinder(QuartoPiece p1, QuartoPiece p2){
+        int numInCommon = 0;
+        if(p1 != null && p2 != null){
+            boolean[] atrP1 = p1.getCharacteristicsArray();
+            boolean[] atrP2 = p2.getCharacteristicsArray();
+
+            //this should probably not be hard coded but we will
+            //only even have 5 attributes to compare in our game
+            for(int i = 0; i < this.quartoBoard.getNumberOfRows(); i++){
+                if(atrP1 == atrP2){numInCommon++;}
+            }
+        }
+        return numInCommon;
+    }
+
+
+    /**
+     * Creates an arraylist of the lines
+     * sends it back to then be compared usingthe common attribute method
+     * its disgusting and i hate it but it seems to work and not
+     * be too inefficient
+     * */
+    private ArrayList<QuartoPiece[]> groupOfPieces(QuartoBoard currentBoard){
+        QuartoPiece[][] boardToArray = currentBoard.board;
+        ArrayList<QuartoPiece[]> pieceArray = new ArrayList<QuartoPiece[]>();
+        //ArrayList<QuartoPiece> pieces = new ArrayList<QuartoPiece>();
+
+        //adding rows
+        //MIGHT not actually necessary
+        for(int i = 0; i < this.quartoBoard.getNumberOfRows(); i++){
+                QuartoPiece[] temp = {boardToArray[i][0],boardToArray[i][1],
+                                      boardToArray[i][2],boardToArray[i][3],boardToArray[i][4]};
+
+        }
+        //adding columns
+        for(int j = 0; j < this.quartoBoard.getNumberOfColumns(); j++){
+                QuartoPiece[] temp = {boardToArray[0][j],boardToArray[1][j],
+                                      boardToArray[2][j],boardToArray[3][j],boardToArray[4][j]};
+                pieceArray.add(temp);
+        }
+
+        //this is gross but its the best way i can think to do it atm
+
+        //add the first diagonal
+        QuartoPiece[] tmpPieces = { boardToArray[0][0], boardToArray[1][1], boardToArray[2][2],
+                                    boardToArray[3][3], boardToArray[3][3] };
+        pieceArray.add(tmpPieces);
+
+        //add the second diagonal
+        QuartoPiece[] tmpPiecesOtherDiagonal = { boardToArray[0][0], boardToArray[1][1], boardToArray[2][2],
+                                                 boardToArray[3][3], boardToArray[3][3] };
+        pieceArray.add(tmpPiecesOtherDiagonal);
+
+
+
+        return pieceArray;
+
+
+    }
