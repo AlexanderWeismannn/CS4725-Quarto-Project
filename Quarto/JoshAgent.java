@@ -6,6 +6,7 @@ public class JoshAgent extends QuartoAgent {
     int pieceToPass=0;
     static int MIN_SCORE = -100;
     static int MAX_SCORE = 100;
+    static int INFINITY = Integer.MAX_VALUE;
     //Example AI
     public JoshAgent(GameClient gameClient, String stateFileName) {
         // because super calls one of the super class constructors(you can overload constructors), you need to pass the parameters required.
@@ -57,10 +58,11 @@ public class JoshAgent extends QuartoAgent {
     @Override
     protected String moveSelectionAlgorithm(int pieceID) {
 
-         if(turn > 11)
-           depth = 3;
-         else if(turn > 6)
-           depth = 2;
+        if(turn > 9)
+          depth = 3;
+        else if(turn > 4)
+          depth = 2;
+        System.out.println("Depth: " + depth + "\n");
 
         long startTime = System.nanoTime();
 
@@ -76,9 +78,12 @@ public class JoshAgent extends QuartoAgent {
 
         //Loop through each root node and build trees
         for (int i = 0; i < spotCount; i++){
-          rootLayer[i] = MiniMax(true, pieceID, remSpots.get(i)[0], remSpots.get(i)[1], depth, remPieces, remSpots, this.quartoBoard);
+          rootLayer[i] = MiniMax(true, pieceID, remSpots.get(i)[0], remSpots.get(i)[1], depth, remPieces, remSpots, this.quartoBoard, -INFINITY, INFINITY);
         }
 
+        for (Node n :rootLayer){
+          System.out.println(n.score);
+        }
         //Root layer is now a list of nodes, each of which containing a score.
         //Choose the max of these nodes
         Node maxNode = rootLayer[0];
@@ -94,20 +99,130 @@ public class JoshAgent extends QuartoAgent {
         long endTime = System.nanoTime();
         System.out.println("\n" + (endTime-startTime)/1000000);
 
-        turn++;
+        turn+=1;
         //Return final choice
         return maxNode.row + "," + maxNode.col;
     }
 
-
-
-
     //Return a value representing whether a board is good or bad
-    private int EvaluateBoardState(QuartoBoard qb, int row, int col, boolean player){
-        return 0;
-    }
+    public int EvaluateBoardState(QuartoBoard qb, boolean player) {
+     /* We need to:
+        - Loop through every row, and note down each row that has 4 pieces in a row, with common characteristics
+        - Loop through every column, and note down each column that has 4 pieces in a row, with common characteristics
+        - Check the two diagonals, and note down each diagonal that has 4 pieces in a row, with common characteristics
+    */
+     int score = 0;
+     boolean[] characteristics;
+     int[] commonCharacteristics;
+     int[] diagonalInCommon;
+     int diagonalTemp = 0;
 
+     diagonalInCommon = new int[] {0,0,0,0,0};
 
+     // check rows
+     for (int x = 0; x < qb.getNumberOfRows(); x++) {
+
+       //Check for skip
+       int temp = 0;
+       for(int i = 0; i < qb.getNumberOfColumns(); i++){
+         if(qb.isSpaceTaken(x, i)){
+          temp++;
+          if(x==i)
+            diagonalTemp++;
+        }
+       }
+
+       if(temp == 4){
+         commonCharacteristics = new int[] {0, 0, 0, 0, 0};
+
+         for (int y = 0; y < qb.getNumberOfColumns(); y++) {
+           // Get the characteristic array of piece at [x, y], and [x, y+1]
+           QuartoPiece current_piece = qb.getPieceOnPosition(x, y);
+           if(current_piece == null)
+              continue;
+           // Get the characteristic arrays
+           characteristics = current_piece.getCharacteristicsArray();
+           // Check if these two arrays have a common feature
+           for(int i = 0; i < commonCharacteristics.length; i++) {
+               commonCharacteristics[i] += characteristics[i] ? 1 : 0;
+               //Diagonal
+               if(x==y){
+                 diagonalInCommon[i] += characteristics[i] ? 1 : 0;
+               }
+           }
+         }
+         //Increment score if row is good
+         for(int i = 0; i < commonCharacteristics.length; i++) {
+           if (commonCharacteristics[i] == 4 || commonCharacteristics[i] == 0){
+             score++;
+             break;
+           }
+         }
+       }
+     }
+     if(diagonalTemp == 4){
+       for(int i = 0; i < diagonalInCommon.length; i++) {
+         if (diagonalInCommon[i] == 4 || diagonalInCommon[i] == 0){
+           score++;
+           break;
+         }
+       }
+     }
+       // resets the common characteristics for the next row analyzed
+       //commonCharacteristics = new int[] {0, 0, 0, 0, 0};
+     diagonalInCommon = new int[] {0,0,0,0,0};
+     diagonalTemp = 0;
+     // check columns
+     for (int x = 0; x < qb.getNumberOfColumns(); x++) {
+
+       //Check for skip
+       int temp = 0;
+       for(int i = 0; i < qb.getNumberOfRows(); i++){
+         if(qb.isSpaceTaken(i, x)){
+          temp++;
+          diagonalTemp++;
+        }
+       }
+       if(temp == 4){
+         commonCharacteristics = new int[] {0, 0, 0, 0, 0};
+
+         for (int y = 0; y < qb.getNumberOfRows(); y++) {
+           QuartoPiece current_piece = qb.getPieceOnPosition(x, y);
+           if(current_piece == null)
+              continue;
+           // Get the characteristic array
+           characteristics = current_piece.getCharacteristicsArray();
+           // add to common char array
+           for(int i = 0; i < commonCharacteristics.length; i++) {
+             commonCharacteristics[i] += characteristics[i] ? 1 : 0;
+               if(qb.getNumberOfRows()-x == y)
+                 diagonalInCommon[i] += characteristics[i] ? 1 : 0;
+           }
+         }
+         for(int i = 0; i < commonCharacteristics.length; i++) {
+           if (commonCharacteristics[i] == 4 || commonCharacteristics[i] == 0){
+             score++;
+             break;
+           }
+         }
+       }
+     }
+     if(diagonalTemp == 4){
+       for(int i = 0; i < diagonalInCommon.length; i++) {
+         if (diagonalInCommon[i] == 4 || diagonalInCommon[i] == 0){
+           score++;
+           break;
+         }
+       }
+     }
+
+     if (player) {
+       return -score;
+       }
+     else {
+       return score;
+     }
+   }
 
     //loop through board and see if the game is in a won state
     private boolean checkIfGameIsWon(QuartoBoard qb, int row, int col) {
@@ -163,8 +278,12 @@ public class JoshAgent extends QuartoAgent {
     }
 
 
-    private Node MiniMax(boolean player, int piece, int row, int col, int depth, ArrayList<Integer> piecesLeft, ArrayList<int[]> spotsLeft, QuartoBoard prevBoard){
+    private Node MiniMax(boolean player, int piece, int row, int col, int depth, ArrayList<Integer> piecesLeft, ArrayList<int[]> spotsLeft, QuartoBoard prevBoard, int alpha, int beta){
       Node node = new Node(piece, row, col, player);
+      //Alpha and beta
+      node.alpha = alpha;
+      node.beta = beta;
+      //Create new quarto board
       QuartoBoard newBoard = new QuartoBoard(prevBoard);
       newBoard.insertPieceOnBoard(row, col, piece);
       //Make shallow copries and update our arraylists
@@ -176,36 +295,57 @@ public class JoshAgent extends QuartoAgent {
       //If player or enemy has won the game
       if(checkIfGameIsWon(newBoard, row, col)){
         node.isLeafNode = true;
-        if(player)
+        if(player){
           node.score = MAX_SCORE;
-        else
+        }
+        else{
           node.score = MIN_SCORE;
+        }
         return node;
       }
-      //If board is full or we reach max depth
+
+      //If board is full or we reach max depth, evaluate state of board
       if(depth == 0 || mySpotsLeft.size() == 0){
         node.isLeafNode = true;
-        node.score = EvaluateBoardState(newBoard, row, col, player);
+        node.score = EvaluateBoardState(newBoard, player);
         return node;
       }
 
       //We're not a leaf node, so we add children to our node
       for(int i = 0; i < myPiecesLeft.size(); i++){
-        int pieceScore = (player ? MAX_SCORE : MIN_SCORE);
+        //Piece score represents the min move per piece
+        int pieceScore = (player ? INFINITY : -INFINITY);
         for(int j = 0; j < mySpotsLeft.size(); j++){
-          //We choose min spot per piece if player
-          Node child = MiniMax(!player, myPiecesLeft.get(i), mySpotsLeft.get(j)[0], mySpotsLeft.get(j)[1], depth-1, myPiecesLeft, mySpotsLeft, newBoard);
+          //We choose min spot per piece if player. Max for enemy
+          Node child = MiniMax(!player, myPiecesLeft.get(i), mySpotsLeft.get(j)[0], mySpotsLeft.get(j)[1], depth-1, myPiecesLeft, mySpotsLeft, newBoard, node.alpha, node.beta);
           node.addChildNode(child);
-
-          if(pieceScore > child.score && player)
-              pieceScore = child.score;
-          else if (pieceScore < child.score && !player)
+          //If player, update pieceScore to min(allSpots)
+          if((pieceScore > child.score) && player){
             pieceScore = child.score;
+
+            //Pruning min (even though we're player, this inner loop is a min choice for spot per piece)
+            if(node.alpha >= pieceScore){
+              break;
+            }
+          }
+          //If enemy, update pieceScore to max(allSpots)
+          else if ((pieceScore < child.score) && !player){
+            pieceScore = child.score;
+            //Pruning max
+            if(pieceScore >= node.beta){
+              break;
+            }
+          }
         }
 
-        if((node.score < pieceScore && player) || (node.score > pieceScore && !player)){
-          node.score = pieceScore;
+        //Now that we have the pieceScore, update max/min node accordingly
+        if(((node.score < pieceScore) && player) || ((node.score > pieceScore) && !player)){
+          node.setScore(pieceScore);
           node.passedPiece = myPiecesLeft.get(i);
+          //Pruning
+          if(node.alpha >= node.beta){
+            break;
+          }
         }
       }
 
@@ -221,14 +361,22 @@ public class JoshAgent extends QuartoAgent {
       int score = 0;
       int passedPiece;
       int row, col;
+      int alpha;
+      int beta;
       ArrayList<Node> children;
 
       public Node(int piece, int row, int col, boolean player){
         this.isPlayer = player;
-        if(player)
-          this.score = MIN_SCORE;
-        else
-          this.score = MAX_SCORE;
+        if(player){
+          this.score = -INFINITY;
+          this.alpha = -INFINITY;
+          this.beta = INFINITY;
+        }
+        else{
+          this.score = INFINITY;
+          this.alpha = INFINITY;
+          this.beta = -INFINITY;
+        }
         this.passedPiece = piece;
         this.row = row;
         this.col = col;
@@ -236,6 +384,14 @@ public class JoshAgent extends QuartoAgent {
       }
       public void addChildNode(Node node){
         children.add(node);
+      }
+
+      public void setScore(int score){
+        this.score = score;
+        if(this.isPlayer)
+          this.alpha = score;
+        else
+          this.beta = score;
       }
 
     }
