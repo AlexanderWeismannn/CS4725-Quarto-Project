@@ -1,7 +1,7 @@
 import java.util.ArrayList;
+import java.util.Collections;
 
 public class BetterAgent extends QuartoAgent {
-  int turn=0;
     int depth = 1;
     int pieceToPass=0;
     static int MIN_SCORE = -100;
@@ -58,12 +58,6 @@ public class BetterAgent extends QuartoAgent {
     @Override
     protected String moveSelectionAlgorithm(int pieceID) {
 
-        if(turn > 8)
-          depth = 3;
-        else if(turn > 2)
-          depth = 2;
-        System.out.println("Depth: " + depth + "\n");
-
         long startTime = System.nanoTime();
 
         ArrayList<Integer> remPieces = getRemainingPieces(this.quartoBoard);
@@ -73,6 +67,14 @@ public class BetterAgent extends QuartoAgent {
           After we've returned our tree and calculated our evaluations recursively back to the root layer.
           In case it isn't clear, spot count represents the number of available spaces
         */
+        int spotsLeft = remSpots.size();
+        if(spotsLeft < 9)
+          depth = 3;
+        else if(spotsLeft < 22)
+          depth = 2;
+
+        System.out.println("Depth: " + depth + "\n");
+
         Node maxNode = MiniMaxMove(true, pieceID, remSpots, remPieces, this.quartoBoard, depth, NegINFINITY, INFINITY);
 
         pieceToPass = maxNode.passedPiece;
@@ -81,7 +83,6 @@ public class BetterAgent extends QuartoAgent {
         long endTime = System.nanoTime();
         System.out.println("\n" + (endTime-startTime)/1000000);
 
-        turn++;
         //Return final choice
         return maxNode.row + "," + maxNode.col;
     }
@@ -94,15 +95,22 @@ public class BetterAgent extends QuartoAgent {
       ArrayList<Integer> newFreePieces = new ArrayList<>(freePieces);
       newFreePieces.remove(new Integer(pieceID));
 
+      if(depth==3){
+        int[] spotScore = new int[emptySpots.size()];
+        //Sort the emptySpots to optimize Pruning
+        for(int i=0; i < spotScore.length; i++){
+          //Get evaluation of board and store int values
+          QuartoBoard newBoard = new QuartoBoard(qb);
+          newBoard.insertPieceOnBoard(emptySpots.get(i)[0], emptySpots.get(i)[1], pieceID);
+          spotScore[i] = EvaluateBoardState(newBoard, nodeType);
+        }
+        //Loop through empty spots again, but this time sort them
+        sort(spotScore, emptySpots, 0, spotScore.length-1);
 
-      //Sort the emptySpots to optimize Pruning
-      // for(int i=0; i < emptySpots.size(); i++){
-      //   //Get evaluation of board and sort array from best to worst
-      //   QuartoBoard newBoard = new QuartoBoard(qb);
-      //   newBoard.insertPieceOnBoard(row, col, pieceID);
-      //   tempScore = EvaluateBoardState(newBoard, nodeType);
-      // }
-
+        if(!nodeType){
+          Collections.reverse(emptySpots);
+        }
+      }
       //If there are spots left on the board, simulate playing your piece there
       for(int i=0; i < emptySpots.size(); i++){
         //Create new quarto board (this is the move)
@@ -216,6 +224,7 @@ public class BetterAgent extends QuartoAgent {
      boolean[] characteristics;
      int[] columnCheck;
      int[][] diagonalCheck = new int[2][5];
+     int[] diagonalSkip = new int[2];
      int[][] rowCheck = new int[6][5];
      int columnSkip = 0;
 
@@ -230,6 +239,13 @@ public class BetterAgent extends QuartoAgent {
            if(current_piece == null){
              columnSkip++;
              rowCheck[5][y]++;
+             if(x==y){
+               diagonalSkip[0]++;
+             }
+             if(qb.getNumberOfRows()-x == y){
+               diagonalSkip[1]++;
+             }
+
               continue;
            }
            // Get the characteristic arrays
@@ -269,14 +285,15 @@ public class BetterAgent extends QuartoAgent {
        }
      }
      for(int i = 0; i < diagonalCheck.length; i++){
-       for (int j = 0; j < diagonalCheck[i].length; j++){
-         if (diagonalCheck[0][i] == 4 || diagonalCheck[0][i] == 0){
-           score++;
-           break;
+       if(diagonalSkip[i] < 2){
+         for (int j = 0; j < diagonalCheck[i].length; j++){
+           if (diagonalCheck[0][i] == 4 || diagonalCheck[0][i] == 0){
+             score++;
+             break;
+           }
          }
        }
      }
-
      if (player) {
        return score;
        }
@@ -326,6 +343,60 @@ public class BetterAgent extends QuartoAgent {
       return tempPieces;
     }
 
+    //Quicksort
+    /* This function takes last element as pivot,
+       places the pivot element at its correct
+       position in sorted array, and places all
+       smaller (smaller than pivot) to left of
+       pivot and all greater elements to right
+       of pivot */
+       public int partition(int arr[], ArrayList<int[]> arrSpots, int low, int high)
+       {
+           int pivot = arr[high];
+           int i = (low-1); // index of smaller element
+           for (int j=low; j<high; j++)
+           {
+               // If current element is smaller than the pivot
+               if (arr[j] < pivot)
+               {
+                   i++;
+                   // swap arr[i] and arr[j]
+                   int temp = arr[i];
+                   int[] tempSpot = arrSpots.get(i);
+                   arr[i] = arr[j];
+                   arrSpots.set(i, arrSpots.get(j));
+                   arr[j] = temp;
+                   arrSpots.set(j, tempSpot);
+               }
+           }
+           // swap arr[i+1] and arr[high] (or pivot)
+           int temp = arr[i+1];
+           int[] tempPos = arrSpots.get(i+1);
+           arr[i+1] = arr[high];
+           arrSpots.set(i+1, arrSpots.get(high));
+           arr[high] = temp;
+           arrSpots.set(high, tempPos);
+
+           return i+1;
+       }
+       /* The main function that implements QuickSort()
+         arr[] --> Array to be sorted,
+         low  --> Starting index,
+         high  --> Ending index */
+       public void sort(int arr[], ArrayList<int[]> spotArr, int low, int high)
+       {
+           if (low < high)
+           {
+               /* pi is partitioning index, arr[pi] is
+                 now at right place */
+               int pi = partition(arr, spotArr, low, high);
+               // Recursively sort elements before
+               // partition and after partition
+               sort(arr, spotArr, low, pi-1);
+               sort(arr, spotArr, pi+1, high);
+           }
+        }
+        //End of quicksort
 
     public class Node{
       //Node should store if its me or the opponent (max or min), if it should have children (leaf),
